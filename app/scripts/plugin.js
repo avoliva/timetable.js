@@ -7,6 +7,7 @@ var Timetable = function() {
     hourStart: 9,
     hourEnd: 17
   };
+  this.usingTwelveHour = false;
   this.locations = [];
   this.events = [];
 };
@@ -54,6 +55,9 @@ Timetable.Renderer = function(tt) {
 
       return this;
     },
+    useTwelveHour: function(){
+      this.usingTwelveHour = true;
+    },
     addLocations: function(newLocations) {
       function hasProperFormat() {
         return newLocations instanceof Array;
@@ -86,11 +90,11 @@ Timetable.Renderer = function(tt) {
       var optionsHasValidType = Object.prototype.toString.call(options) === '[object Object]';
 
       this.events.push({
-                       name: name,
-                       location: location,
-                       startDate: start,
-                       endDate: end,
-                       options: optionsHasValidType ? options : undefined
+        name: name,
+        location: location,
+        startDate: start,
+        endDate: end,
+        options: optionsHasValidType ? options : undefined
       });
 
       return this;
@@ -103,9 +107,16 @@ Timetable.Renderer = function(tt) {
     }
   }
 
-  function prettyFormatHour(hour) {
-    var prefix = hour < 10 ? '0' : '';
-    return prefix + hour + ':00';
+  function prettyFormatHour(hour, usingTwelveHour) {
+    var prettyHour;
+      if(usingTwelveHour) {
+          var period = hour >= 12 ? 'PM':'AM';
+          prettyHour = ((hour + 11) % 12 + 1) + ':00' + period;
+      } else {
+          var prefix = hour < 10 ? '0' : '';
+          prettyHour = prefix + hour + ':00';
+      }
+    return prettyHour;
   }
 
   Timetable.Renderer.prototype = {
@@ -152,7 +163,7 @@ Timetable.Renderer = function(tt) {
           var liNode = headerULNode.appendChild(document.createElement('li'));
           var spanNode = liNode.appendChild(document.createElement('span'));
           spanNode.className = 'time-label';
-          spanNode.textContent = prettyFormatHour(hour);
+          spanNode.textContent = prettyFormatHour(hour, timetable.usingTwelveHour);
 
           if (hour === timetable.scope.hourEnd && (timetable.scope.hourStart !== timetable.scope.hourEnd || looped)) {
             completed = true;
@@ -170,7 +181,7 @@ Timetable.Renderer = function(tt) {
         ulNode.className = 'room-timeline';
         for (var k=0; k<timetable.locations.length; k++) {
           var liNode = ulNode.appendChild(document.createElement('li'));
-          appendLocationEvents(timetable.locations[k], liNode);
+          appendLocationEvents(timetable.locations[k], liNode);/**/
         }
       }
       function appendLocationEvents(location, node) {
@@ -229,19 +240,19 @@ Timetable.Renderer = function(tt) {
       }
       function computeEventBlockOffset(event) {
         var scopeStartHours = timetable.scope.hourStart;
-                var eventStartHours = event.startDate.getHours() + (event.startDate.getMinutes() / 60);
-                var hoursBeforeEvent =  getDurationHours(scopeStartHours, eventStartHours);
-                return hoursBeforeEvent / scopeDurationHours * 100 + '%';
-            }
+        var eventStartHours = event.startDate.getHours() + (event.startDate.getMinutes() / 60);
+        var hoursBeforeEvent =  getDurationHours(scopeStartHours, eventStartHours);
+        return hoursBeforeEvent / scopeDurationHours * 100 + '%';
+      }
 
-            var scopeDurationHours = getDurationHours(timetable.scope.hourStart, timetable.scope.hourEnd);
-            var container = document.querySelector(selector);
-            checkContainerPrecondition(container);
-            emptyNode(container);
-            appendTimetableAside(container);
-            appendTimetableSection(container);
-            syncscroll.reset();
-        }
-    };
+      var scopeDurationHours = getDurationHours(timetable.scope.hourStart, timetable.scope.hourEnd);
+      var container = document.querySelector(selector);
+      checkContainerPrecondition(container);
+      emptyNode(container);
+      appendTimetableAside(container);
+      appendTimetableSection(container);
+      syncscroll.reset();
+    }
+  };
 
 })();
